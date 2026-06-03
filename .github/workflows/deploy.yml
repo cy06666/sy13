@@ -1,0 +1,28 @@
+name: DevOps实验13流水线
+on:
+  push:
+    branches: [ main ]
+jobs:
+  ci_cd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+      - name: 执行单元测试
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - run: |
+          pip install -r requirements.txt
+          python test_app.py
+      - name: 构建&推送Docker镜像
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_PWD: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          docker login -u ${DOCKER_USER} -p ${DOCKER_PWD}
+          SHA=$(git rev-parse --short HEAD)
+          docker build -t ${DOCKER_USER}/se-web-app:latest .
+          docker tag ${DOCKER_USER}/se-web-app:latest ${DOCKER_USER}/se-web-app:$SHA
+          docker push ${DOCKER_USER}/se-web-app:latest
+          docker push ${DOCKER_USER}/se-web-app:$SHA
